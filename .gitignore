@@ -1,0 +1,12 @@
+*.json
+*.out
+*.o
+*.d
+
+.ccls
+.ccls-cache
+.cache
+
+build
+build/
+build/*

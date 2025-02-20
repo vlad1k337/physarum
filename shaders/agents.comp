@@ -1,0 +1,88 @@
+#version 460 core
+
+#define M_PI 3.141592653
+#define agents_count 1000000
+
+uniform vec2 map_size;
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(rgba32f, binding = 0) uniform image2D imgOutput;
+
+layout(std430, binding = 1) buffer agentData
+{
+    vec2 positions[agents_count];
+    float angles[agents_count];
+};
+
+float rand(vec2 co)
+{
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+uint agent_index = uint(gl_GlobalInvocationID.x);
+
+float sense(float angle_spacing, int sensor_offset)
+{
+    float sensor_angle = angles[agent_index] + angle_spacing;
+    vec2 sensor_dir = vec2(cos(sensor_angle), sin(sensor_angle));
+
+    float trail_sum = 0;
+    for (int i = 1; i <= sensor_offset; ++i)
+    {
+        vec2 sensor_value = positions[agent_index] + (sensor_dir * sensor_offset);
+        if (sensor_value.x < 0 || sensor_value.y < 0 || sensor_value.x > map_size.x || sensor_value.y > map_size.y)
+        {
+            trail_sum += rand(sensor_value);
+            continue;
+        }
+
+        trail_sum += imageLoad(imgOutput, ivec2(sensor_value)).x;
+    }
+
+    return trail_sum;
+}
+
+void main()
+{
+    vec4 color = vec4(1.0);
+
+    const float agent_speed = 2.0f;
+    const float angle_theta = M_PI / 4.0;
+    const int sensor_size = 30;
+
+    float front = sense(0.0, sensor_size);
+    float left = sense(angle_theta, sensor_size);
+    float right = sense(-angle_theta, sensor_size);
+
+    if (front > left && front > right)
+    {
+        angles[agent_index] += 0.0;
+    }
+
+    else if (front < left && front < right)
+    {
+        angles[agent_index] += rand(positions[agent_index]) * M_PI * 2;
+    }
+
+    else if (left > front && left > right) {
+        angles[agent_index] += rand(positions[agent_index]) * angle_theta;
+    }
+
+    else if (right > front && right > left) {
+        angles[agent_index] -= rand(positions[agent_index]) * angle_theta;
+    }
+
+    else {
+        angles[agent_index] += 0.0;
+    }
+
+    vec2 agent_dir = vec2(cos(angles[agent_index]), sin(angles[agent_index]));
+    positions[agent_index] += agent_dir * agent_speed;
+    if (positions[agent_index].x < 0 || positions[agent_index].y < 0 || positions[agent_index].x > map_size.x || positions[agent_index].y > map_size.y)
+    {
+        positions[agent_index] -= agent_dir;
+        angles[agent_index] += M_PI;
+    }
+    imageStore(imgOutput, ivec2(positions[agent_index].x, positions[agent_index].y), color);
+}
