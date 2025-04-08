@@ -17,7 +17,7 @@ $ make clean
 ```
 
 ## Example simulations
-*10^6 agents on 2550x1440 resolution, ~60μs per frame. Pretty fast huh?*
+*10^6 agents on 2550x1440 resolution, ~60μs per frame.*
 
 ![image](https://github.com/user-attachments/assets/8abb3de7-fd21-4616-90c8-7efddf5695fa)
 
